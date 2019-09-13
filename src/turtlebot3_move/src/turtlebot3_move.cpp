@@ -41,23 +41,59 @@ void turtlebot3_move::create_msg () {
 
 
 void turtlebot3_move::odom_callback (const nav_msgs::Odometry::ConstPtr& current_odom) {
-    // load the msg into an internal odometry variable
-    pose[0] = current_odom->pose.pose.position.x;
-    pose[1] = current_odom->pose.pose.position.y;
-    pose[2] = current_odom->pose.pose.position.z;
+    odom = *current_odom;
 
+    // load the msg into an internal odometry variable
+    pose[0] = odom.pose.pose.position.x;
+    pose[1] = odom.pose.pose.position.y;
+
+    // create these temp variables to get euler conversion
+    double r, p;
+
+    tf::Quaternion q (odom.pose.pose.orientation.x, odom.pose.pose.orientation.y,odom.pose.pose.orientation.y,odom.pose.pose.orientation.w);
+
+    // make a matrix with the current orientration quarternion
+    tf::Matrix3x3 m (q);
+
+    // convert to euler roll pitch yaw, we only need the yaw here
+    m.getRPY(r,p,yaw);
 }
 
+
+
+bool turtlebot3_move::reached_pose() {
+    // get the cartesian distance to the target pose
+    unsigned int dist = sqrt(pow(pose_error[0],2) + pow(pose_error[1],2));
+
+    // if we are close enough then reached pose is true
+    return (dist < POSE_ERROR_MARGIN) ? true : false;
+}
+
+
 void turtlebot3_move::velocity_control() {
+    // get current time
+    time_sec = ros::Time::now().toSec();
+    
     // calculate position error
     // target position - current position
     pose_error[0] = pose_target[0] - pose[0];
     pose_error[1] = pose_target[1] - pose[1];
-    pose_error[2] = pose_target[2] - pose[2];
 
-    // calculate yaw error
-    // positive yaw is to the left
-    yaw_error     = yaw_target - yaw;
+    if(!reached_pose()){
+        // we have not reached the X,Y location yet
+        // calculate yaw error
+        // drive towards point
+    }
+    else {
+        // we have reached the X,Y
+        // calculate yaw error to desired orientation
+        // rotate
+    }
+
+    yaw_error = yaw_target - yaw;
+
+
+
 
 }
 
