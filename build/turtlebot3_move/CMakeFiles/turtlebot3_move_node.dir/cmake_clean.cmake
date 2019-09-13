@@ -1,0 +1,10 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/turtlebot3_move_node.dir/src/turtlebot3_move.cpp.o"
+  "/home/jesse/Documents/mx2TurtleSlam/devel/lib/turtlebot3_move/turtlebot3_move_node.pdb"
+  "/home/jesse/Documents/mx2TurtleSlam/devel/lib/turtlebot3_move/turtlebot3_move_node"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/turtlebot3_move_node.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

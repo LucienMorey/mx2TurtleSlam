@@ -1,0 +1,5 @@
+sudo killall rosmaster
+sudo killall gzserver
+sudo killall gzclient
+export TURTLEBOT3_MODEL=waffle
+roslaunch turtlebot3_gazebo turtlebot3_empty_world.launch

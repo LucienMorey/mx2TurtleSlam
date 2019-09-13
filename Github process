@@ -1,0 +1,12 @@
+Git push
+	git status
+	git add
+	git commit -m "message"
+	git push
+	go to github - make pull request
+Git fetch
+	git fetch lucien master
+	git rebase lucien/master
+
+Git add remote
+	git remote add lucien git@github.com:LucienMorey/mx2TurtleSlam
