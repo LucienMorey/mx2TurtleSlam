@@ -1,0 +1,63 @@
+#!/usr/bin/env python
+
+import rospy
+from geometry_msgs.msg import Pose
+import sys
+import numpy as np
+import tf.transformations
+
+msg = """
+Control your Robot
+---------------------
+Specify a pose message in format:
+    x y z roll pitch yaw
+
+Note that Co-ordinates published will be absolute and not relative to robot.
+Spaces should seperate values.
+
+CTRL-C to quit
+"""
+
+e_f = """
+Incorrect message format
+"""
+
+e = """
+Communications Failed
+"""
+
+#Get pose will read the next input pose from the terminal and split it into an array of 6 values
+# After this the values are remapped from chars to 64bit floats and return it
+def getPose():
+   	input_pose = raw_input().split()
+        input_pose = map(np.float64,input_pose)
+        return input_pose
+
+if __name__=="__main__":
+
+    rospy.init_node('pose_publisher')
+    pub = rospy.Publisher('target_pose', Pose, queue_size=10)
+
+    try:
+        print msg
+        while(1):
+            inputPose = getPose()
+
+            if (len(inputPose) != 6):
+                print e_f
+           	break
+
+            pose = Pose()
+            pose.position.x=inputPose[0]; pose.position.y=inputPose[1]; pose.position.z=inputPose[2]
+            (pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w) = tf.transformations.quaternion_from_euler(inputPose[3],inputPose[4],inputPose[5], 'sxyz')
+
+            pub.publish(pose)
+
+    except:
+        print e
+
+    finally:
+        pose = Pose()
+        pose.position.x = inputPose[0]; pose.position.y = inputPose[1]; pose.position.z = inputPose[2]
+        pose.orientation.x; pose.orientation.y; pose.orientation.z; pose.orientation.w
+        pub.publish(pose)

@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>pose_publisher</name>
+  <version>0.0.0</version>
+  <description>a node to take node to take terminal input in the form xyzrollpitchyaw and publlish a pose message</description>
+  <maintainer email="lucienp@live.com.au">lucien</maintainer>
+
+
+  <!-- One license tag required, multiple allowed, one license per tag -->
+  <!-- Commonly used license strings: -->
+  <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
+  <license>TODO</license>
+
+  <author email="lucienp@live.com.au">Lucien Morey</author> -->
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>rospy</depend>
+  <build_depend>python-numpy</build_depend>
+  <exec_depend>python-numpy</exec_depend>
+  <depend>geometry_msgs</depend>
+  <build_depend>python-sys</build_depend>
+  <exec_depend>python-sys</exec_depend>
+  <depend>tf</depend>
+</package>
