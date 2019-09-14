@@ -1,8 +1,0 @@
-prefix=/home/jesse/Documents/mx2TurtleSlam/install
-
-Name: turtlebot3_description
-Description: Description of turtlebot3_description
-Version: 1.2.1
-Cflags: 
-Libs: -L/home/jesse/Documents/mx2TurtleSlam/install/lib 
-Requires: urdf xacro

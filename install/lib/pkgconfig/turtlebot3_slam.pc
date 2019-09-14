@@ -1,8 +1,0 @@
-prefix=/home/jesse/Documents/mx2TurtleSlam/install
-
-Name: turtlebot3_slam
-Description: Description of turtlebot3_slam
-Version: 1.2.1
-Cflags: -I/home/jesse/Documents/mx2TurtleSlam/install/include
-Libs: -L/home/jesse/Documents/mx2TurtleSlam/install/lib 
-Requires: roscpp sensor_msgs
