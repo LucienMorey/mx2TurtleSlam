@@ -41,7 +41,7 @@ catkin_package(
 # Install
 ################################################################################
 catkin_install_python(PROGRAMS
-  nodes/pose_publisher.py
+  nodes/pose_publisher
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

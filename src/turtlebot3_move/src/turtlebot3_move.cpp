@@ -78,7 +78,6 @@ void turtlebot3_move::pose_target_callback (const geometry_msgs::Pose::ConstPtr&
 
 	m.getRPY(r,p,yaw_target);
 
-	pose_target.x
 }
 
 
@@ -93,7 +92,7 @@ bool turtlebot3_move::reached_pose() {
 
 
 void turtlebot3_move::linear_move_x() {
-	float e_x = pose[0] + 	;
+	float e_x = pose[0];
 }
 
 
