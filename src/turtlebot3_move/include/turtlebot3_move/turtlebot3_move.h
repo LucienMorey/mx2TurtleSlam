@@ -13,6 +13,7 @@
 #define ODOM_SUBSCRIBER_NAME			"odom"
 #define VELOCITY_PUBLISHER_NAME			"cmd_vel"
 #define NODE_NAME						"velocity_control"
+#define POSE_TARGET_SUBSCRIBER_NAME		"pose_target"
 
 // proportional and derivative gains for the velocity control
 #define ANGLE_P							0.05
@@ -26,6 +27,7 @@
 class turtlebot3_move {
 	public:
 		nav_msgs::Odometry odom;
+		geometry_msgs::Pose pose_target;
 
 		// current position and yaw of the turtlebot
 		// subscribe to the odom topic to get these 
@@ -34,8 +36,8 @@ class turtlebot3_move {
 
 		// pose and yaw targets
 		// get from user input
-		float pose_target[2];
-		float yaw_target;
+		//float pose_target[2];
+		double yaw_target;
 
 		// get the error between the current pose and the target pose.
 		float pose_error[2];
@@ -59,7 +61,10 @@ class turtlebot3_move {
 		void create_msg ();
  
 		// odometry subscriber callback function
-        void odom_callback (const nav_msgs::Odometry::ConstPtr& current_odom);
+        void odom_callback (const nav_msgs::Odometry::ConstPtr& current_odom_msg);
+
+        // pose subscriber callback function
+        void pose_target_callback(const geometry_msgs::Pose::ConstPtr& pose_target_msg);
 
         void velocity_control ();
 
@@ -67,10 +72,14 @@ class turtlebot3_move {
         // only checks if the X,Y position is correct, not the yaw
         bool reached_pose ();
 
+        // move the bot forward a given distance
+        void linear_move_x ();
+
 	private:
 		ros::NodeHandle nh;
 		ros::Publisher string_test;
         ros::Subscriber current_odom;
+        ros::Subscriber pose_target_msg;
 };
 
 
