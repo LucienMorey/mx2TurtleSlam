@@ -16,13 +16,13 @@
 #define POSE_TARGET_SUBSCRIBER_NAME		"target_pose"
 
 // proportional and derivative gains for the velocity control
-#define KP_LINEAR						0.005
-#define KP_ANGULAR						0.005
+#define KP_LINEAR						0.12
+#define KP_ANGULAR						0.0002
 
-#define KI_LINEAR						0.005
+#define KI_LINEAR						0.00005
 #define KI_ANGULAR						0.005
 
-#define KD_LINEAR						0.005
+#define KD_LINEAR						0.00005
 #define KD_ANGULAR						0.005
 
 #define U_MAX							0.26

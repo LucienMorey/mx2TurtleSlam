@@ -86,6 +86,9 @@ void turtlebot3_move::velocity_control() {
     geometry_msgs::Twist velocity;
 
     pose_error[0] = sqrt(pow((abs_pose_target[0]-pose[0]),2) + pow((abs_pose_target[1]-pose[1]),2));
+
+    if (abs_pose_target[0] < pose[0])
+    	pose_error[0] = pose_error[0] * -1;
     pose_error[1] = pose_target[2]- pose[2];
   	
   	
