@@ -13,13 +13,18 @@
 #define ODOM_SUBSCRIBER_NAME			"odom"
 #define VELOCITY_PUBLISHER_NAME			"cmd_vel"
 #define NODE_NAME						"velocity_control"
-#define POSE_TARGET_SUBSCRIBER_NAME		"pose_target"
+#define POSE_TARGET_SUBSCRIBER_NAME		"target_pose"
 
 // proportional and derivative gains for the velocity control
-#define ANGLE_P							0.05
-#define ANGLE_D							0.01
-#define LINEAR_P						0.15
-#define LINEAR_D						0.01
+#define KP_LINEAR						0.05
+#define KP_ANGULAR						0.01
+
+#define KI_LINEAR						0.05
+#define KI_ANGULAR						0.01
+
+#define KD_LINEAR						0.05
+#define KD_ANGULAR						0.01
+
 
 //
 #define POSE_ERROR_MARGIN				0.1
@@ -27,25 +32,22 @@
 class turtlebot3_move {
 	public:
 		nav_msgs::Odometry odom;
-		geometry_msgs::Pose pose_target;
+		geometry_msgs::Pose pose_target_msg;
 
 		// current position and yaw of the turtlebot
 		// subscribe to the odom topic to get these 
-		float pose[2];
-		double yaw;
+		double pose[3];
+		double pose_old[3];
 
 		// pose and yaw targets
 		// get from user input
-		//float pose_target[2];
-		double yaw_target;
+		double pose_target[3];
+
+		double abs_pose_target[3];
 
 		// get the error between the current pose and the target pose.
-		float pose_error[2];
-		float yaw_error;
-
-		// velocity output from the controller
-		// publish this as a cmd_vel message for the turtlebot
-		float cmd_vel_[6];
+		double pose_error[3];
+		double pose_error_old[3];
 
 		unsigned long time_sec;
 		unsigned long time_sec_old;
@@ -64,7 +66,7 @@ class turtlebot3_move {
         void odom_callback (const nav_msgs::Odometry::ConstPtr& current_odom_msg);
 
         // pose subscriber callback function
-        void pose_target_callback(const geometry_msgs::Pose::ConstPtr& pose_target_msg);
+        void pose_target_callback(const geometry_msgs::Pose::ConstPtr& pose_target_msg_);
 
         void velocity_control ();
 
@@ -79,7 +81,10 @@ class turtlebot3_move {
 		ros::NodeHandle nh;
 		ros::Publisher string_test;
         ros::Subscriber current_odom;
-        ros::Subscriber pose_target_msg;
+        ros::Subscriber pose_target_sub;
+
+        // controller terms
+		float ui, up, ud, ui_old, u;
 };
 
 
