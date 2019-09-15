@@ -4,8 +4,8 @@
 
 turtlebot3_move::turtlebot3_move() {
     // initialise publisher
-    string_test = nh.advertise<std_msgs::String>("test_topic", 10);
-    ROS_INFO("Publisher initialised with name: %s", "test_topic");
+    cmd_velocity = nh.advertise<geometry_msgs::Twist>(VELOCITY_PUBLISHER_NAME, 10);
+    ROS_INFO("Publisher initialised with name: %s", VELOCITY_PUBLISHER_NAME);
 
     // initialise subscriber
     current_odom = nh.subscribe(ODOM_SUBSCRIBER_NAME, 10, &turtlebot3_move::odom_callback, this);
@@ -20,28 +20,6 @@ turtlebot3_move::turtlebot3_move() {
 
 // class deconstructor
 turtlebot3_move::~turtlebot3_move () {}
-
-
-
-void turtlebot3_move::create_msg () {
-    // initiallise a string message
-    std_msgs::String msg;
-
-    // get the current ros time in seconds
-    unsigned long t = ros::Time::now().toSec();
-
-    // create a stringstream to build the message
-    std::stringstream s;
-    s << "time:" << t;
-
-
-    // load the string into the message
-    msg.data = s.str();
-
-    // publish the message
-    string_test.publish(msg);
-}
-
 
 
 void turtlebot3_move::odom_callback (const nav_msgs::Odometry::ConstPtr& current_odom_msg) {
@@ -75,7 +53,6 @@ void turtlebot3_move::pose_target_callback (const geometry_msgs::Pose::ConstPtr&
 
 	pose_target[0] = pose_target_msg.position.x;
 	pose_target[1] = pose_target_msg.position.y;
-	ROS_INFO("pose_target[0]: %f", pose_target[0]);
 	double r, p;
 
 	tf::Quaternion q (pose_target_msg.orientation.x, pose_target_msg.orientation.y, pose_target_msg.orientation.z, pose_target_msg.orientation.w);
@@ -89,7 +66,6 @@ void turtlebot3_move::pose_target_callback (const geometry_msgs::Pose::ConstPtr&
     abs_pose_target[0] = pose[0] + pose_target[0]*cos(pose[2]);
     abs_pose_target[1] = pose[1] + pose_target[0]*sin(pose[2]);
     abs_pose_target[2] = pose[2] + pose_target[2];
-    ROS_INFO("abs_pose_target[0]: %f", abs_pose_target[0]);
 
 }
 
@@ -107,11 +83,11 @@ bool turtlebot3_move::reached_pose() {
 void turtlebot3_move::velocity_control() {
 	// get current time
     time_sec = ros::Time::now().toSec();
+    geometry_msgs::Twist velocity;
 
     pose_error[0] = sqrt(pow((abs_pose_target[0]-pose[0]),2) + pow((abs_pose_target[1]-pose[1]),2));
-    //ROS_INFO("Error: %f", pose_error[0]);
     pose_error[1] = pose_target[2]- pose[2];
-  	ROS_INFO("Error: %f", pose_error[1]);
+  	
   	
     up = KP_LINEAR * pose_error[0];
   	// integral term
@@ -124,20 +100,27 @@ void turtlebot3_move::velocity_control() {
 	u = up + ui + ud;
 
 	// // saturation and anti-wind up
-	// if (u > u_max_)
-	//     u = u_max_;
-	// else if (u < u_min_)
-	//       u = u_min_;
-	// else
-	// {
-	//     // Integral value is stored for the next step only if
-	//     // control value is not saturated(anti-wind up)
-	//     ui_old_ = ui;
-	// }
-	ui_old = ui;
+	 if (u > U_MAX)
+	     u = U_MAX;
+	 else
+	 {
+	     // Integral value is stored for the next step only if
+	     // control value is not saturated(anti-wind up)
+	     ui_old = ui;
+	 }
 
 	pose_error_old[0] = pose_error[0];
 	time_sec_old = time_sec;
+
+	velocity.linear.x = u;
+	velocity.linear.y = 0;
+	velocity.linear.z = 0;
+	velocity.angular.x = 0;
+	velocity.angular.y = 0;
+	velocity.angular.z = 0;
+
+	cmd_velocity.publish(velocity);
+	ROS_INFO("cmd_vel: %f\r", velocity.linear.x);
 	
 }
 
@@ -165,23 +148,14 @@ int main (int argc, char **argv) {
     while (ros::ok()) {
         tb3move.velocity_control();
         // generate a new message and publish it
-        tb3move.create_msg();
-        // handle ros events and messages
+
+
         ros::spinOnce();
 
         // sleep for a while
         rate.sleep();
     }
 }
-
-
-
-// VELOCITY CONTROLLER
-// NOT CURRENTLY WORKING
-// USING LINEAR_MOVE AND ANGULAR MOVE
-
-
-
 
 
 
