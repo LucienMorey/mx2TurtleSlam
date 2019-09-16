@@ -23,9 +23,11 @@ turtlebot3_move::~turtlebot3_move () {}
 
 
 void turtlebot3_move::odom_callback (const nav_msgs::Odometry::ConstPtr& current_odom_msg) {
+    // update old pose
     for(int i = 0; i<3;i++)
     	pose_old[i] = pose[i];
 
+    // get new message
     odom = *current_odom_msg;
 
     // load the msg into an internal odometry variable
@@ -51,6 +53,7 @@ void turtlebot3_move::pose_target_callback (const geometry_msgs::Pose::ConstPtr&
 	// store the pose target locally
 	pose_target_msg = * pose_target_msg_;
 
+    // load target into linear and angular target array
 	pose_target[0] = pose_target_msg.position.x;
 	pose_target[1] = pose_target_msg.position.y;
 	double r, p;
@@ -85,13 +88,26 @@ void turtlebot3_move::velocity_control() {
     time_sec = ros::Time::now().toSec();
     geometry_msgs::Twist velocity;
 
+    // linear error as a distance between target point and current pose
     pose_error[0] = sqrt(pow((abs_pose_target[0]-pose[0]),2) + pow((abs_pose_target[1]-pose[1]),2));
+    // angular error
+    pose_error[1] = abs_pose_target[2]- pose[2];
 
+    // which side of the target are we on
     if (abs_pose_target[0] < pose[0])
     	pose_error[0] = pose_error[0] * -1;
-    pose_error[1] = pose_target[2]- pose[2];
-  	
-  	
+
+    if (pose_error[1] > M_PI)
+        pose_error[1] -= M_PI * 2;
+    else if (pose_error[1] < -M_PI)
+        pose_error[1] += M_PI * 2;
+    else
+        pose_error[1] = pose_error[1];
+    
+  	//u = turtlebot3_move::pid(pose_error[0], pose_error_old[0], KP_LINEAR, KI_LINEAR, KD_LINEAR, ui_old_l);
+    u = turtlebot3_move::pid(pose_error[1], pose_error_old[1], KP_ANGULAR, KI_ANGULAR, KD_ANGULAR, ui_old_a);
+
+  	/*
     up = KP_LINEAR * pose_error[0];
   	// integral term
   	ui = ui_old  + KI_LINEAR * pose_error[0];
@@ -111,21 +127,51 @@ void turtlebot3_move::velocity_control() {
 	     // control value is not saturated(anti-wind up)
 	     ui_old = ui;
 	 }
+     */
+
+
 
 	pose_error_old[0] = pose_error[0];
+    pose_error_old[1] = pose_error[1];
 	time_sec_old = time_sec;
 
-	velocity.linear.x = u;
+	velocity.linear.x = 0;
 	velocity.linear.y = 0;
 	velocity.linear.z = 0;
 	velocity.angular.x = 0;
 	velocity.angular.y = 0;
-	velocity.angular.z = 0;
+	velocity.angular.z = u;
 
 	cmd_velocity.publish(velocity);
 	ROS_INFO("cmd_vel: %f\r", velocity.linear.x);
 	
 }
+
+double turtlebot3_move::pid (double e, double e_old, double p, double i, double d, double &ui_old) {
+    up = p * e;
+    // integral term
+    ui = ui_old  + i * e;
+
+    // derivative term
+    ud = d * ((e - e_old)/(time_sec-time_sec_old));
+
+    // total = p + i + d
+    u = up + ui + ud;
+
+    // // saturation and anti-wind up
+     if (u > U_MAX)
+         u = U_MAX;
+     else
+     {
+         // Integral value is stored for the next step only if
+         // control value is not saturated(anti-wind up)
+         ui_old = ui;
+     }
+
+     return u;
+}
+
+
 
 int main (int argc, char **argv) {
     // initialise the node in ros
@@ -151,10 +197,7 @@ int main (int argc, char **argv) {
     while (ros::ok()) {
         tb3move.velocity_control();
         // generate a new message and publish it
-
-
         ros::spinOnce();
-
         // sleep for a while
         rate.sleep();
     }

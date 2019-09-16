@@ -16,20 +16,18 @@
 #define POSE_TARGET_SUBSCRIBER_NAME		"target_pose"
 
 // proportional and derivative gains for the velocity control
-#define KP_LINEAR						0.12
-#define KP_ANGULAR						0.0002
+#define KP_LINEAR						0.15
+#define KP_ANGULAR						0.18
 
-#define KI_LINEAR						0.00005
-#define KI_ANGULAR						0.005
+#define KI_LINEAR						0.001
+#define KI_ANGULAR						0.001
 
-#define KD_LINEAR						0.00005
-#define KD_ANGULAR						0.005
+#define KD_LINEAR						0.003
+#define KD_ANGULAR						0.003
 
 #define U_MAX							0.26
-
-
-//
 #define POSE_ERROR_MARGIN				0.1
+
 
 class turtlebot3_move {
 	public:
@@ -79,6 +77,8 @@ class turtlebot3_move {
         // move the bot forward a given distance
         void linear_move_x ();
 
+        double pid (double e, double e_old, double p, double i, double d, double &ui_old);
+
 	private:
 		ros::NodeHandle nh;
 		ros::Publisher cmd_velocity;
@@ -86,7 +86,7 @@ class turtlebot3_move {
         ros::Subscriber pose_target_sub;
 
         // controller terms
-		float ui, up, ud, ui_old, u;
+		double ui, up, ud, ui_old_l, ui_old_a, u;
 };
 
 
