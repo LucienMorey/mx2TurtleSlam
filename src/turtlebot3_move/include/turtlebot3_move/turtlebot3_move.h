@@ -26,7 +26,7 @@
 #define KD_ANGULAR						0.003
 
 #define U_MAX							0.26
-#define POSE_ERROR_MARGIN				0.1
+const float POSE_ERROR_MARGIN = 0.02;
 
 
 class turtlebot3_move {
@@ -72,7 +72,7 @@ class turtlebot3_move {
 
         // check if we have reached the desired pose
         // only checks if the X,Y position is correct, not the yaw
-        bool reached_pose ();
+        bool reached_position();
 
         // move the bot forward a given distance
         void linear_move_x ();

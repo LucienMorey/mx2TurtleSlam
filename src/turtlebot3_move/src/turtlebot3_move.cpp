@@ -69,17 +69,19 @@ void turtlebot3_move::pose_target_callback (const geometry_msgs::Pose::ConstPtr&
     abs_pose_target[0] = pose[0] + pose_target[0]*cos(pose[2]);
     abs_pose_target[1] = pose[1] + pose_target[0]*sin(pose[2]);
     abs_pose_target[2] = pose[2] + pose_target[2];
-
+    ROS_INFO("abs_pose_target[0]: %f\r", abs_pose_target[0]);
+    ROS_INFO("abs_pose_target[1]: %f\r", abs_pose_target[1]);
 }
 
 
 
-bool turtlebot3_move::reached_pose() {
+bool turtlebot3_move::reached_position() {
     // get the cartesian distance to the target pose
-    unsigned int dist = sqrt(pow(pose_error[0],2) + pow(pose_error[1],2));
+    float dist = abs(pose_error[0]);
+    
 
     // if we are close enough then reached pose is true
-    return (dist < POSE_ERROR_MARGIN) ? true : false;
+    
 }
 
 
@@ -104,8 +106,29 @@ void turtlebot3_move::velocity_control() {
     else
         pose_error[1] = pose_error[1];
     
-  	//u = turtlebot3_move::pid(pose_error[0], pose_error_old[0], KP_LINEAR, KI_LINEAR, KD_LINEAR, ui_old_l);
-    u = turtlebot3_move::pid(pose_error[1], pose_error_old[1], KP_ANGULAR, KI_ANGULAR, KD_ANGULAR, ui_old_a);
+
+    
+
+    u = turtlebot3_move::pid(pose_error[0], pose_error_old[0], KP_LINEAR, KI_LINEAR, KD_LINEAR, ui_old_l);
+        
+
+        velocity.linear.x = u;
+        velocity.linear.y = 0;
+        velocity.linear.z = 0;
+        velocity.angular.x = 0;
+        velocity.angular.y = 0;
+        velocity.angular.z = 0;
+
+    // u = turtlebot3_move::pid(pose_error[1], pose_error_old[1], KP_ANGULAR, KI_ANGULAR, KD_ANGULAR, ui_old_a);
+    //     velocity.linear.x = 0;
+    //     velocity.linear.y = 0;
+    //     velocity.linear.z = 0;
+    //     velocity.angular.x = 0;
+    //     velocity.angular.y = 0;
+    //     velocity.angular.z = u;
+    
+  	//ROS_INFO("poseerror: %f", pose_error[0]);
+    
 
   	/*
     up = KP_LINEAR * pose_error[0];
@@ -135,15 +158,10 @@ void turtlebot3_move::velocity_control() {
     pose_error_old[1] = pose_error[1];
 	time_sec_old = time_sec;
 
-	velocity.linear.x = 0;
-	velocity.linear.y = 0;
-	velocity.linear.z = 0;
-	velocity.angular.x = 0;
-	velocity.angular.y = 0;
-	velocity.angular.z = u;
+	
 
 	cmd_velocity.publish(velocity);
-	ROS_INFO("cmd_vel: %f\r", velocity.linear.x);
+	
 	
 }
 
