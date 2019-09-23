@@ -45,10 +45,6 @@ def move_to_pose(x_current, y_current, theta_current, x_goal, y_goal, theta_goal
         if alpha > np.pi / 2 or alpha < -np.pi / 2:
             v = -v
 
-        theta = theta + w * dt
-        x = x + v * np.cos(theta) * dt
-        y = y + v * np.sin(theta) * dt
-
 
 def transformation_matrix(x, y, theta):
     return np.array([
@@ -57,28 +53,31 @@ def transformation_matrix(x, y, theta):
         [0, 0, 1]
     ])
 
+def odm_callback(msg):
+    global x_current
+    global y_current
+    global theta_current
 
-def main():
+    x = msg.pose.pose.position.x
+    y = msg.pose.pose.position.y
+    rot_q = msg.pose.pose.orientation
+    (roll, pitch, theta) = euler_from_quaternion(rot_q.x, rot_q.y, rot_q.z, rot_q.w)
 
-    for i in range(5):
-        x_start = 20 * random()
-        y_start = 20 * random()
-        theta_start = 2 * np.pi * random() - np.pi
-        x_goal = 20 * random()
-        y_goal = 20 * random()
-        theta_goal = 2 * np.pi * random() - np.pi
-        print("Initial x: %.2f m\nInitial y: %.2f m\nInitial theta: %.2f rad\n" %
-              (x_start, y_start, theta_start))
-        print("Goal x: %.2f m\nGoal y: %.2f m\nGoal theta: %.2f rad\n" %
-              (x_goal, y_goal, theta_goal))
-        move_to_pose(x_start, y_start, theta_start, x_goal, y_goal, theta_goal)
+def pose_goal_callback(msg):
 
 
 if __name__ == '__main__':
     
+    rospy.init_node('pose_pursuit')
+    pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
+    odom_sub = rospy.Subscriber('odom', Pose, odom_callback)
+    pose_goal_sub = rospy.Subscriber('pose_goal', Pose, pose_goal_callback)
 
     x = x_start
     y = y_start
     theta = theta_start
 
-    move_to_pose(x_current, y_current, theta_current, x_goal, y_goal, theta_goal)
+    while 1:
+        move_to_pose(x_current, y_current, theta_current, x_goal, y_goal, theta_goal)
+
+    
