@@ -1,0 +1,113 @@
+#!/usr/bin/env python
+
+import rospy
+from geometry_msgs.msg import Pose, Twist
+from tf.transformations import euler_from_quaternion
+from nav_msgs.msg import Odometry
+import numpy as np
+
+
+Kp_rho = 0.1
+Kp_alpha = 0.1
+Kp_beta = -0.1
+
+velocity  = Twist()
+
+x_current = 0
+y_current = 0
+theta_current = 0
+
+
+e = """
+An exception has occured. The node will now shutdown
+"""
+
+
+def move_to_pose(x_current, y_current, theta_current, x_goal, y_goal, theta_goal):
+
+    x_diff = x_goal - x_current
+    y_diff = y_goal - y_current
+
+    rho = np.sqrt(x_diff**2 + y_diff**2)
+
+    # Restrict alpha and beta (angle differences) to the range
+    # [-pi, pi] to prevent unstable behavior e.g. difference going
+    # from 0 rad to 2*pi rad with slight turn
+
+    alpha = (np.arctan2(y_diff, x_diff)- theta_current + np.pi) % (2 * np.pi) - np.pi
+    beta = (theta_goal - theta_current - alpha + np.pi) % (2 * np.pi) - np.pi
+    
+    print("rho is:", rho )
+    print("alpha is:",alpha)
+    print("beta is", beta)
+
+    if (rho > 0.01) and ( alpha > 0.01):
+
+        
+        
+        velocity.linear.x = Kp_rho * rho
+        velocity.angular.z = Kp_alpha * alpha + Kp_beta * beta
+
+        if alpha > np.pi / 2 or alpha < -np.pi / 2:
+            velocity.linear.x = -velocity.linear.x
+
+def odom_callback(msg):
+    global x_current
+    global y_current
+    global theta_current
+
+    x_current = msg.pose.pose.position.x
+    y_current = msg.pose.pose.position.y
+    rot_q = (
+            msg.pose.pose.orientation.x,
+            msg.pose.pose.orientation.y,
+            msg.pose.pose.orientation.z,
+            msg.pose.pose.orientation.w)
+
+    (roll_current, pitch_current, theta_current) = euler_from_quaternion(rot_q)
+
+def pose_goal_callback(msg):
+    global x_goal
+    global y_goal
+    global theta_goal
+
+    x_goal = msg.position.x
+    y_goal = msg.position.y
+    rot_q = (
+            msg.orientation.x,
+            msg.orientation.y,
+            msg.orientation.z,
+            msg.orientation.w
+            )
+
+    (roll_goal, pitch_goal, theta_goal) = euler_from_quaternion(rot_q)
+
+
+
+
+if __name__ == '__main__':
+    
+    rospy.init_node('pose_pursuit')
+    pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
+    odom_sub = rospy.Subscriber('odom', Odometry, odom_callback)
+    pose_goal_sub = rospy.Subscriber('target_pose', Pose, pose_goal_callback)
+
+    x_goal = 0
+    y_goal = 0
+    theta_goal = 0
+    try:
+        while not rospy.is_shutdown():
+            print(x_goal)
+            move_to_pose(x_current, y_current, theta_current, x_goal, y_goal, theta_goal)
+            pub.publish(velocity)
+    except Exception as fail:
+        print(fail)
+
+    finally:
+        velocity = Twist()
+        velocity.linear.x = 0; velocity.linear.y=0; velocity.linear.z=0
+        velocity.angular.x = 0; velocity.angular.y=0; velocity.angular.z=0
+        pub.publish(velocity)
+        print(" that flag")
+
+    
