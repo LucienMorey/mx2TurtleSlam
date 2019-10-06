@@ -25,6 +25,7 @@ catkin_package(
 #############
 
 catkin_install_python(PROGRAMS
+  nodes/astar_path_planning.py  
   nodes/map_writer.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
