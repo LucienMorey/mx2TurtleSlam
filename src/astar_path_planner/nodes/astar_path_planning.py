@@ -17,8 +17,9 @@ warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
 # Global variables
 map_x           = 0
 map_y           = 0
-map_res         = 0         # cm/node
+map_res         = 0         # m/node
 ox, oy          = [], []    # obstacle maps
+robot_radius    = 0.2       # meters
 show_animation  = True
 
 
@@ -74,7 +75,7 @@ class astar_planner:
             if show_animation:  # pragma: no cover
                 plt.plot(self.calc_grid_position(current.x, self.minx),
                          self.calc_grid_position(current.y, self.miny), "xc")
-                if len(closed_set.keys()) % 10 == 0:
+                if len(closed_set.keys()) % 100 == 0:
                     plt.pause(0.001)
 
             if current.x == ngoal.x and current.y == ngoal.y:
@@ -245,7 +246,9 @@ def map_callback(msg):
     count = 0
 
     global ox, oy, map_res
-    map_res = 1#map.info.resolution
+
+    # setting this to a larger value will reduce the number of nodes
+    map_res = map.info.resolution
 
     for y in range(map.info.height):
         for x in range(map.info.width):
@@ -261,13 +264,13 @@ def map_callback(msg):
 if __name__=="__main__":
     rospy.init_node('map_writer')
     map_sub = rospy.Subscriber('map', OccupancyGrid, map_callback)
-    #map_pub = rospy.Publisher("normalised_map", OccupancyGrid, queue_size = 10)
+    pose_list = rospy.Publisher("normalised_map", OccupancyGrid, queue_size = 10)
 
     sx = 10
     sy = 5
-    gx = 13
-    gy = 57
-    robot_radius = 0.2  # m
+    gx = 60
+    gy = 40
+    
 
     while 1:
         if(ox):
@@ -277,8 +280,10 @@ if __name__=="__main__":
                 plt.plot(gx, gy, "xb")
                 plt.grid(True)
                 plt.axis("equal")
+
+            robot_radius /= map_res
     
-            astar = astar_planner(ox, oy, map_res, robot_radius)
+            astar = astar_planner(ox, oy, 1, robot_radius)
             rx, ry = astar.planning(sx, sy, gx, gy)
 
 
