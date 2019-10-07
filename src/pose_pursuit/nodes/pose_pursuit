@@ -5,19 +5,10 @@ from geometry_msgs.msg import Pose, Twist
 from tf.transformations import euler_from_quaternion
 from nav_msgs.msg import Odometry
 import numpy as np
-import datetime
 
-Kp_rho = 8.0
-Kp_alpha = 0.0
-Kp_beta = -0.0
-
-Ki_rho = 0.0
-Ki_alpha = 0.0
-Ki_beta = -0.0
-
-Kd_rho = 0.0
-Kd_alpha = 0.0
-Kd_beta = -0.0
+Kp_rho = 0.1
+Kp_alpha = 0.2
+Kp_beta = -0.2
 
 velocity  = Twist()
 
@@ -33,56 +24,30 @@ rho = 0
 alpha = 0
 beta = 0
 
-ui_rho = 0
-
-time = datetime.datetime.now().time().microsecond
-
-
-e = """
-An exception has occured. The node will now shutdown
-"""
-
-
-def move_to_pose(x_current, y_current, theta_current, x_goal, y_goal, theta_goal):
+def move_to_pose():
 
     global rho
     global alpha
     global beta
-    global time
-    global ui_rho
 
-    time_delta = datetime.datetime.now().time().microsecond - time
-    time = datetime.datetime.now().time().microsecond
+    global velocity      
     
-    x_diff = x_goal - x_current
-    y_diff = y_goal - y_current
-
-    rho_old = rho
-    rho = np.sqrt(x_diff**2 + y_diff**2)
-
-    # Restrict alpha and beta (angle differences) to the range
-    # [-pi, pi] to prevent unstable behavior e.g. difference going
-    # from 0 rad to 2*pi rad with slight turn
-
-    alpha_old = alpha
-    alpha = (np.arctan2(y_diff, x_diff)- theta_current + np.pi) % (2 * np.pi) - np.pi
-    beta_old = beta
-    beta = (theta_goal - theta_current - alpha + np.pi) % (2 * np.pi) - np.pi
-
-    #print(Kd_rho*((rho-rho_old)/time_delta))
-    
-    print("rho is:", rho )
-    print("rho old is ", rho_old)
+    # print("rho is:", (rho) )
     # print("alpha is:",alpha)
     # print("beta is", beta)
 
-    if (rho > 0.01):
+    if (rho > 0.05) or (abs(theta_goal-theta_current)>0.0825):       
+        
+        velocity.linear.x = Kp_rho * rho
+        velocity.angular.z = Kp_alpha * alpha + Kp_beta * beta
 
-        
-        
-        ui_rho = ui_rho + Ki_rho*rho
-        velocity.linear.x = Kp_rho * rho + Kd_rho*((rho-rho_old)/time_delta) + ui_rho
-        velocity.angular.z = Kp_alpha * alpha + Kd_alpha*((alpha-alpha_old)/time_delta) + Kp_beta * beta + Kd_beta*((beta-beta_old)/time_delta)
+        if velocity.linear.x > 0.22:
+        	velocity.linear.x = 0.22
+
+        if velocity.angular.z > 1.82:
+        	velocity.angular.z = 1.82
+        elif velocity.angular.z < -1.82:
+        	velocity.angular.z = -1.82
 
         if alpha > np.pi / 2 or alpha < -np.pi / 2:
             velocity.linear.x = -velocity.linear.x
@@ -91,9 +56,13 @@ def move_to_pose(x_current, y_current, theta_current, x_goal, y_goal, theta_goal
         velocity.angular.z = 0.0
 
 def odom_callback(msg):
-    global x_current
-    global y_current
-    global theta_current
+    global x_goal
+    global y_goal
+    global theta_goal
+    
+    global rho
+    global alpha
+    global beta
 
     x_current = msg.pose.pose.position.x
     y_current = msg.pose.pose.position.y
@@ -105,7 +74,21 @@ def odom_callback(msg):
 
     (roll_current, pitch_current, theta_current) = euler_from_quaternion(rot_q)
 
-def pose_goal_callback(msg):
+    x_diff = x_goal - x_current
+    y_diff = y_goal - y_current
+
+    rho = (np.sqrt(x_diff**2 + y_diff**2))
+
+    # Restrict alpha and beta (angle differences) to the range
+    # [-pi, pi] to prevent unstable behavior e.g. difference going
+    # from 0 rad to 2*pi rad with slight turn
+
+    alpha = (np.arctan2(y_diff, x_diff) - theta_current + np.pi) % (2 * np.pi) - np.pi
+
+    beta = (theta_goal - theta_current - alpha + np.pi) % (2 * np.pi) - np.pi
+    
+
+def pose_array_goal_callback(msg):
     global x_goal
     global y_goal
     global theta_goal
@@ -121,19 +104,16 @@ def pose_goal_callback(msg):
 
     (roll_goal, pitch_goal, theta_goal) = euler_from_quaternion(rot_q)
 
-
-
-
 if __name__ == '__main__':
     
     rospy.init_node('pose_pursuit')
     pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
     odom_sub = rospy.Subscriber('odom', Odometry, odom_callback)
-    pose_goal_sub = rospy.Subscriber('target_pose', Pose, pose_goal_callback)
+    pose_goal_sub = rospy.Subscriber('target_pose', Pose, pose_array_goal_callback)
     try:
         while not rospy.is_shutdown():
             
-            move_to_pose(x_current, y_current, theta_current, x_goal, y_goal, theta_goal)
+            move_to_pose()
             pub.publish(velocity)
     except Exception as fail:
         print(fail)
