@@ -8,6 +8,7 @@ import rospy
 from nav_msgs.msg import OccupancyGrid
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import PoseArray
+from geometry_msgs.msg import Point
 from tf.transformations import quaternion_from_euler
 import matplotlib.pyplot as plt
 import math
@@ -181,29 +182,6 @@ class astar_planner:
 
         return True
 
-    def calc_obstacle_map_v0(self, ox, oy):
-
-        self.minx = int(round(min(ox)))
-        self.miny = int(round(min(oy)))
-        self.maxx = int(round(max(ox)))
-        self.maxy = int(round(max(oy)))
-
-        self.xwidth = int(round((self.maxx - self.minx) / self.reso))
-        self.ywidth = int(round((self.maxy - self.miny) / self.reso))
-
-
-        # obstacle map generation
-        self.obmap = [[False for i in range(self.ywidth)]for i in range(self.xwidth)]
-        for ix in range(self.xwidth):
-            x = self.calc_grid_position(ix, self.minx)
-            for iy in range(int(self.ywidth)):
-                y = self.calc_grid_position(iy, self.miny)
-                for iox, ioy in zip(ox, oy):
-                    d = math.sqrt((iox - x) ** 2 + (ioy - y) ** 2)
-                    if d <= self.rr:
-                        self.obmap[ix][iy] = True
-                        break
-
     def calc_obstacle_map(self, ox, oy):
 
         self.minx = int(round(min(ox)))
@@ -216,9 +194,11 @@ class astar_planner:
 
         self.obmap = [[False for i in range(self.ywidth)]for i in range(self.xwidth)]
         count = 0
-        for ix, iy in zip(ox, oy):
+        for x, y in zip(ox, oy):
+            ix = x - self.minx
+            iy = y - self.miny
             try:
-                self.obmap[ix - self.minx][iy - self.miny] = True
+                self.obmap[ix][iy] = True
                 count += 1
                 for i,_ in enumerate(self.motion):
                     for j in range(int(round(self.rr))):
@@ -231,8 +211,6 @@ class astar_planner:
             except IndexError:
                 pass
         print("Added {} nodes to the vitual obstacle map". format(count))
-
-
 
 
     @staticmethod
@@ -306,11 +284,13 @@ def map_callback(msg):
 def list_to_pose(x_list, y_list):
     # create pose array from x and y lists
     # call publisher 
-    pose_array = []
+    pose_array_msg = PoseArray()
     for i in range(len(x_list)):
         xypose = Pose()
-        xypose.position.x = x_list[i]
-        xypose.position.y = y_list[i]
+        pos = Point()
+        pos.x = x_list[i]
+        pos.y = y_list[i]
+        xypose.position = pos
 
         if (i + 1 < len(x_list)):
             # heading is the direction to the next pose
@@ -321,17 +301,9 @@ def list_to_pose(x_list, y_list):
             theta = -math.atan2(dx, dy)
             xypose.orientation = quaternion_from_euler(0, 0, theta)
 
-        pose_array.append(xypose)
+        pose_array_msg.poses.append(xypose)
     
-    publish_poses(pose_array)
-
-    #return pose_array
-
-def publish_poses(pose_list):
-    pose_array_msg = PoseArray()
-    pose_array_msg.poses = pose_list
     pose_pub.publish(pose_array_msg)
-
 
 def pose_callback(msg):
     # target pose callback
@@ -354,10 +326,10 @@ if __name__=="__main__":
     pose_sub = rospy.Subscriber("target_pose", Pose, pose_callback)
     pose_pub = rospy.Publisher("path", PoseArray, queue_size = 10)
 
-    sx = 40
-    sy = 40
-    gx = 250
-    gy = 300
+    sx = 10
+    sy = 10
+    gx = 40
+    gy = 40
 
     while 1:
         if(ox):
