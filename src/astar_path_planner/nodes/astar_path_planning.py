@@ -6,8 +6,12 @@
 
 import rospy
 from nav_msgs.msg import OccupancyGrid
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseArray
+from tf.transformations import quaternion_from_euler
 import matplotlib.pyplot as plt
 import math
+import numpy
 
 #import to stop matplot warnings in terminal
 import warnings
@@ -127,8 +131,10 @@ class astar_planner:
             ry.append(self.calc_grid_position(n.y, self.miny))
             pind = n.pind
 
+        
+        
 
-        return rx, ry
+        return rx[::-1], ry[::-1]
 
     @staticmethod
     def calc_heuristic(n1, n2):
@@ -261,10 +267,40 @@ def map_callback(msg):
     print("Map found!\nHeight: {}\nWidth: {}\nResolution: {}" .format(map.info.height, map.info.width, map.info.resolution))
     print("Found {} obstacle points" .format(count))
 
+def list_to_pose(x_list, y_list):
+    # create pose array from x and y lists
+    # call publisher 
+    pose_array = []
+    for i in range(len(x_list)):
+        xypose = Pose()
+        xypose.position.x = x_list[i]
+        xypose.position.y = y_list[i]
+
+        if (i + 1 < len(x_list)):
+            # heading is the direction to the next pose
+            dx = x_list[i+1] - x_list[i]
+            dy = y_list[i+1] - y_list[i]
+
+            # atan2 takes into account quadrants to return an angle beyond pi/2
+            theta = -math.atan2(dx, dy)
+            xypose.orientation = quaternion_from_euler(0, 0, theta)
+
+        pose_array.append(xypose)
+    
+    publish_poses(pose_array)
+
+    #return pose_array
+
+def publish_poses(pose_list):
+    pose_array_msg = PoseArray()
+    pose_array_msg.poses = pose_list
+    pose_pub.publish(pose_array_msg)
+
+
 if __name__=="__main__":
     rospy.init_node('map_writer')
     map_sub = rospy.Subscriber('map', OccupancyGrid, map_callback)
-    pose_list = rospy.Publisher("normalised_map", OccupancyGrid, queue_size = 10)
+    pose_pub = rospy.Publisher("path", PoseArray, queue_size = 10)
 
     sx = 10
     sy = 5
@@ -281,15 +317,15 @@ if __name__=="__main__":
                 plt.grid(True)
                 plt.axis("equal")
 
-            robot_radius /= map_res
+            #robot_radius /= map_res
     
             astar = astar_planner(ox, oy, 1, robot_radius)
             rx, ry = astar.planning(sx, sy, gx, gy)
 
+            list_to_pose(rx, ry)
 
             if show_animation:  # pragma: no cover
                 plt.plot(rx, ry, "-r")
                 plt.show()
                 break;
-
 
