@@ -21,10 +21,12 @@ warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
 # Global variables
 map_x           = 0
 map_y           = 0
-map_res         = 0         # m/node
+map_res         = 0         # m/nodes
 ox, oy          = [], []    # obstacle maps
+gx, gy          = 0, 0      # goal x,y
 robot_radius    = 0.2       # meters
 show_animation  = True
+planning_status = False     # currently planning?
 
 
 class astar_planner:
@@ -32,8 +34,8 @@ class astar_planner:
     def __init__(self, ox, oy, reso, rr):
         self.reso = reso
         self.rr = rr
-        self.calc_obstacle_map(ox, oy)
         self.motion = self.get_motion_model()
+        self.calc_obstacle_map(ox, oy)
 
     class Node:
         def __init__(self, x, y, cost, pind):
@@ -58,6 +60,8 @@ class astar_planner:
             rx: x position list of the final path
             ry: y position list of the final path
         """
+        global planning_status
+        planning_status = True
 
         nstart = self.Node(self.calc_xyindex(sx, self.minx),
                            self.calc_xyindex(sy, self.miny), 0.0, -1)
@@ -79,7 +83,7 @@ class astar_planner:
             if show_animation:  # pragma: no cover
                 plt.plot(self.calc_grid_position(current.x, self.minx),
                          self.calc_grid_position(current.y, self.miny), "xc")
-                if len(closed_set.keys()) % 100 == 0:
+                if len(closed_set.keys()) % 1000 == 0:
                     plt.pause(0.001)
 
             if current.x == ngoal.x and current.y == ngoal.y:
@@ -131,8 +135,8 @@ class astar_planner:
             ry.append(self.calc_grid_position(n.y, self.miny))
             pind = n.pind
 
-        
-        
+        global planning_status
+        planning_status = False        
 
         return rx[::-1], ry[::-1]
 
@@ -177,7 +181,7 @@ class astar_planner:
 
         return True
 
-    def calc_obstacle_map(self, ox, oy):
+    def calc_obstacle_map_v0(self, ox, oy):
 
         self.minx = int(round(min(ox)))
         self.miny = int(round(min(oy)))
@@ -186,6 +190,7 @@ class astar_planner:
 
         self.xwidth = int(round((self.maxx - self.minx) / self.reso))
         self.ywidth = int(round((self.maxy - self.miny) / self.reso))
+
 
         # obstacle map generation
         self.obmap = [[False for i in range(self.ywidth)]for i in range(self.xwidth)]
@@ -198,6 +203,37 @@ class astar_planner:
                     if d <= self.rr:
                         self.obmap[ix][iy] = True
                         break
+
+    def calc_obstacle_map(self, ox, oy):
+
+        self.minx = int(round(min(ox)))
+        self.miny = int(round(min(oy)))
+        self.maxx = int(round(max(ox)))
+        self.maxy = int(round(max(oy)))
+
+        self.xwidth = int(round((self.maxx - self.minx) / self.reso))
+        self.ywidth = int(round((self.maxy - self.miny) / self.reso))
+
+        self.obmap = [[False for i in range(self.ywidth)]for i in range(self.xwidth)]
+        count = 0
+        for ix, iy in zip(ox, oy):
+            try:
+                self.obmap[ix - self.minx][iy - self.miny] = True
+                count += 1
+                for i,_ in enumerate(self.motion):
+                    for j in range(int(round(self.rr))):
+                        try:
+                            if not self.obmap[ix+self.motion[i][0]*j][iy+self.motion[i][1]*j]:
+                                self.obmap[ix+self.motion[i][0]*j][iy+self.motion[i][1]*j] = True
+                                count += 1
+                        except IndexError:
+                            pass
+            except IndexError:
+                pass
+        print("Added {} nodes to the vitual obstacle map". format(count))
+
+
+
 
     @staticmethod
     def get_motion_model():
@@ -297,16 +333,31 @@ def publish_poses(pose_list):
     pose_pub.publish(pose_array_msg)
 
 
+def pose_callback(msg):
+    # target pose callback
+    # recieves msg from pose publisher node
+    # if we are not currently planning, then set the new goal
+    global planning_status
+    global gx, gy
+    if not planning_status:
+        gx = msg.position.x
+        gy = msg.position.y
+    else:
+        print("Still planning, cannot update goal")
+
+
+
+
 if __name__=="__main__":
     rospy.init_node('map_writer')
     map_sub = rospy.Subscriber('map', OccupancyGrid, map_callback)
+    pose_sub = rospy.Subscriber("target_pose", Pose, pose_callback)
     pose_pub = rospy.Publisher("path", PoseArray, queue_size = 10)
 
-    sx = 10
-    sy = 5
-    gx = 60
-    gy = 40
-    
+    sx = 40
+    sy = 40
+    gx = 250
+    gy = 300
 
     while 1:
         if(ox):
@@ -317,7 +368,7 @@ if __name__=="__main__":
                 plt.grid(True)
                 plt.axis("equal")
 
-            #robot_radius /= map_res
+            robot_radius /= (map_res*2)
     
             astar = astar_planner(ox, oy, 1, robot_radius)
             rx, ry = astar.planning(sx, sy, gx, gy)
