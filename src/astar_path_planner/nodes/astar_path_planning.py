@@ -9,6 +9,7 @@ import rospy
 from nav_msgs.msg import OccupancyGrid
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import PoseArray
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from tf.transformations import quaternion_from_euler
 import matplotlib.pyplot as plt
 import math
@@ -24,6 +25,7 @@ map_origin      = Pose()
 map_res         = 0         # m/nodes
 ox, oy          = [], []    # obstacle maps
 gx, gy          = 0, 0      # goal x,y
+sx, sy          = 0, 0      # start position for planning
 robot_radius    = 0.2       # meters
 show_animation  = True
 planning_status = False     # currently planning?
@@ -49,17 +51,7 @@ class astar_planner:
 
     def planning(self, sx, sy, gx, gy):
         print("Planning started")
-        """
-        A star path search
-        input:
-            sx: start x position [m]
-            sy: start y position [m]
-            gx: goal x position [m]
-            gx: goal x position [m]
-        output:
-            rx: x position list of the final path
-            ry: y position list of the final path
-        """
+
         global planning_status
         planning_status = True
 
@@ -253,6 +245,7 @@ def print_map(msg):
 
 
 def to_trinary(p):
+    # change the occupancy grid values to something more convenient
 	if (p == 100):
 		return str(1)
 	elif (p == 0):
@@ -261,6 +254,7 @@ def to_trinary(p):
 		return str(2)
 
 def map_callback(msg):
+    # create obstacle arrays from map message
     map = msg
     count = 0
 
@@ -280,6 +274,7 @@ def map_callback(msg):
     
     print("Map found!\nHeight: {}\nWidth: {}\nResolution: {}" .format(map.info.height, map.info.width, map.info.resolution))
     print("Found {} obstacle points" .format(count))
+    pose_amcl_sub = rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, amcl_pose_callback)
 
 def list_to_pose(x_list, y_list):
     # create pose array from x and y lists
@@ -297,12 +292,14 @@ def list_to_pose(x_list, y_list):
             dy = y_list[i+1] - y_list[i]
 
             # atan2 takes into account quadrants to return an angle beyond pi/2
-            theta = -math.atan2(dx, dy)
+            theta = (numpy.pi / 2) -math.atan2(dx, dy) 
             xypose.orientation.x, xypose.orientation.y, xypose.orientation.z, xypose.orientation.w= quaternion_from_euler(0, 0, theta)
 
         pose_array_msg.poses.append(xypose)
+    pose_array_msg.header.frame_id = "map"
 
     pose_pub.publish(pose_array_msg)
+    print("Published {} path poses" .format(len(pose_array_msg.poses)))
 
 def node_to_pose(x, y):
     x_pose = map_origin.position.x + map_res * x
@@ -330,19 +327,21 @@ def pose_target_callback(msg):
     else:
         print("Still planning, cannot update goal")
 
+def amcl_pose_callback(msg):
+    global sx, sy
+    sx, sy = pose_to_node(msg.pose.pose.position.x, msg.pose.pose.position.y)
+
 if __name__=="__main__":
     rospy.init_node('map_writer')
     map_sub = rospy.Subscriber('map', OccupancyGrid, map_callback)
     pose_target_sub = rospy.Subscriber("target_pose", Pose, pose_target_callback)
-    #pose_amcl_sub = rospy.Subscriber("amcl_pose", Pose, amcl_pose_callback)
+    
     pose_pub = rospy.Publisher("path", PoseArray, queue_size = 10)
 
-    sx = 200
-    sy = 160
-
     while 1:
-        if(ox and gx):
-            if show_animation:  # pragma: no cover
+        # if start, goal, and map have been recieved
+        if(ox and gx and sx):
+            if show_animation:
                 plt.plot(ox, oy, ".k")
                 plt.plot(sx, sy, "og")
                 plt.plot(gx, gy, "xb")
@@ -356,7 +355,7 @@ if __name__=="__main__":
 
             list_to_pose(rx, ry)
 
-            if show_animation:  # pragma: no cover
+            if show_animation:
                 plt.plot(rx, ry, "-r")
                 plt.show()
                 break;
