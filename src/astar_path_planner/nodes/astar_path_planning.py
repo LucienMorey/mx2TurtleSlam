@@ -8,7 +8,6 @@ import rospy
 from nav_msgs.msg import OccupancyGrid
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import PoseArray
-from geometry_msgs.msg import Point
 from tf.transformations import quaternion_from_euler
 import matplotlib.pyplot as plt
 import math
@@ -287,10 +286,8 @@ def list_to_pose(x_list, y_list):
     pose_array_msg = PoseArray()
     for i in range(len(x_list)):
         xypose = Pose()
-        pos = Point()
-        pos.x = x_list[i]
-        pos.y = y_list[i]
-        xypose.position = pos
+        xypose.position.x = x_list[i]
+        xypose.position.y = y_list[i]
 
         if (i + 1 < len(x_list)):
             # heading is the direction to the next pose
@@ -299,10 +296,10 @@ def list_to_pose(x_list, y_list):
 
             # atan2 takes into account quadrants to return an angle beyond pi/2
             theta = -math.atan2(dx, dy)
-            xypose.orientation = quaternion_from_euler(0, 0, theta)
+            xypose.orientation.x, xypose.orientation.y, xypose.orientation.z, xypose.orientation.w= quaternion_from_euler(0, 0, theta)
 
         pose_array_msg.poses.append(xypose)
-    
+        
     pose_pub.publish(pose_array_msg)
 
 def pose_callback(msg):
