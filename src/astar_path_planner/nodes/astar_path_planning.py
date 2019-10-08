@@ -2,7 +2,8 @@
 # Path planning node returns a list of poses forming a path
 # Subscibes to OccupancyGrid
 # Run map_server with target map to publish OccupancyGrid messages
-# Publishes ????
+# Publishes PoseArray with name "path"
+# subscribes to amcl_pose for starting pose
 
 import rospy
 from nav_msgs.msg import OccupancyGrid
@@ -19,8 +20,7 @@ import matplotlib.cbook
 warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
 
 # Global variables
-map_x           = 0
-map_y           = 0
+map_origin      = Pose()
 map_res         = 0         # m/nodes
 ox, oy          = [], []    # obstacle maps
 gx, gy          = 0, 0      # goal x,y
@@ -264,10 +264,11 @@ def map_callback(msg):
     map = msg
     count = 0
 
-    global ox, oy, map_res
+    global ox, oy, map_res, map_origin
 
     # setting this to a larger value will reduce the number of nodes
     map_res = map.info.resolution
+    map_origin = map.info.origin
 
     for y in range(map.info.height):
         for x in range(map.info.width):
@@ -286,8 +287,9 @@ def list_to_pose(x_list, y_list):
     pose_array_msg = PoseArray()
     for i in range(len(x_list)):
         xypose = Pose()
-        xypose.position.x = x_list[i]
-        xypose.position.y = y_list[i]
+        #xypose.position.x = x_list[i]
+        #xypose.position.y = y_list[i]
+        xypose.position.x, xypose.position.y = node_to_pose(x_list[i], y_list[i])
 
         if (i + 1 < len(x_list)):
             # heading is the direction to the next pose
@@ -299,37 +301,47 @@ def list_to_pose(x_list, y_list):
             xypose.orientation.x, xypose.orientation.y, xypose.orientation.z, xypose.orientation.w= quaternion_from_euler(0, 0, theta)
 
         pose_array_msg.poses.append(xypose)
-        
+
     pose_pub.publish(pose_array_msg)
 
-def pose_callback(msg):
+def node_to_pose(x, y):
+    x_pose = map_origin.position.x + map_res * x
+    y_pose = map_origin.position.y + map_res * y
+
+    return x_pose, y_pose
+
+def pose_to_node(x_pose, y_pose):
+    x = (x_pose - map_origin.position.x)/map_res
+    y = (y_pose - map_origin.position.y)/map_res
+
+    return x, y
+
+def pose_target_callback(msg):
     # target pose callback
     # recieves msg from pose publisher node
     # if we are not currently planning, then set the new goal
     global planning_status
     global gx, gy
     if not planning_status:
-        gx = msg.position.x
-        gy = msg.position.y
+        gx, gy = pose_to_node(msg.position.x, msg.position.y)
+        print("Goal found!")
+        print("Goal Pose: {}, {}" .format(msg.position.x, msg.position.y))
+        print("Goal Node: {}, {}" .format(round(gx), round(gy)))
     else:
         print("Still planning, cannot update goal")
-
-
-
 
 if __name__=="__main__":
     rospy.init_node('map_writer')
     map_sub = rospy.Subscriber('map', OccupancyGrid, map_callback)
-    pose_sub = rospy.Subscriber("target_pose", Pose, pose_callback)
+    pose_target_sub = rospy.Subscriber("target_pose", Pose, pose_target_callback)
+    #pose_amcl_sub = rospy.Subscriber("amcl_pose", Pose, amcl_pose_callback)
     pose_pub = rospy.Publisher("path", PoseArray, queue_size = 10)
 
-    sx = 10
-    sy = 10
-    gx = 40
-    gy = 40
+    sx = 200
+    sy = 160
 
     while 1:
-        if(ox):
+        if(ox and gx):
             if show_animation:  # pragma: no cover
                 plt.plot(ox, oy, ".k")
                 plt.plot(sx, sy, "og")
@@ -337,7 +349,7 @@ if __name__=="__main__":
                 plt.grid(True)
                 plt.axis("equal")
 
-            robot_radius /= (map_res*2)
+            robot_radius /= (map_res)
     
             astar = astar_planner(ox, oy, 1, robot_radius)
             rx, ry = astar.planning(sx, sy, gx, gy)
