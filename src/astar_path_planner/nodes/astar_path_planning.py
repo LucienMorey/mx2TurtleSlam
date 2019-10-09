@@ -287,7 +287,7 @@ def map_callback(msg):
                 count += 1
     
     print("Map found!\nHeight: {}\nWidth: {}\nResolution: {}" .format(map.info.height, map.info.width, map.info.resolution))
-    print("Found {} obstacle points" .format(count))
+    print("Found {} obstacle points\n" .format(count))
     pose_amcl_sub = rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, amcl_pose_callback)
 
 
@@ -323,7 +323,7 @@ def list_to_pose(x_list, y_list):
     pose_pub.publish(pose_array_msg)
 
     # confirmation
-    print("Published {} path poses" .format(len(pose_array_msg.poses)))
+    print("Published {} path poses\n" .format(len(pose_array_msg.poses)))
 
 
 
@@ -349,12 +349,17 @@ def pose_target_callback(msg):
     # if we are not currently planning, then set the new goal
     global planning_status
     global gx, gy
-    if not planning_status:
 
+    try:
+        plt.close()
+    except:
+        pass
+
+    if not planning_status:
         gx, gy = pose_to_node(msg.pose.position.x, msg.pose.position.y)
-        print("Goal found!")
+        print("\nGoal found!")
         print("Goal Pose: {}, {}" .format(msg.pose.position.x, msg.pose.position.y))
-        print("Goal Node: {}, {}" .format(round(gx), round(gy)))
+        print("Goal Node: {}, {}\n" .format(round(gx), round(gy)))
     else:
         print("Still planning, cannot update goal")
 
@@ -377,28 +382,30 @@ if __name__=="__main__":
     while 1:
         # if start, goal, and map have been recieved
         if(ox and gx and sx):
-            if show_animation:
-                plt.plot(ox, oy, ".k")
-                plt.plot(sx, sy, "og")
-                plt.plot(gx, gy, "xb")
-                plt.grid(True)
-                plt.axis("equal")
-
+            
             robot_radius /= (map_res)
     
             astar = astar_planner(ox, oy, 1, robot_radius)
 
+            # wait for a new goal to start planning again
             while 1:
-                print(gx)
-                print(gy)
                 while not astar.verify_target_pose(gx,gy):
-                    print("Waiting for valid target \r"),   
-
-                rx, ry = astar.planning(sx, sy, gx, gy)
-            
-                list_to_pose(rx, ry)
+                    print("Waiting for valid target \r"),  
 
                 if show_animation:
-                        plt.plot(rx, ry, "-r")
-                        plt.show()
+                    plt.plot(ox, oy, ".k")
+                    plt.plot(sx, sy, "og")
+                    plt.plot(gx, gy, "xb")
+                    plt.grid(True)
+                    plt.axis("equal") 
+
+                rx, ry = astar.planning(sx, sy, gx, gy)
+                list_to_pose(rx, ry)
+
+               
+                if show_animation:
+                    plt.plot(rx, ry, "-r")
+                    plt.show()
+
                 gx, gy = 0, 0
+               
