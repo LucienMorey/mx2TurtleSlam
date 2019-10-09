@@ -10,6 +10,9 @@ from nav_msgs.msg import OccupancyGrid
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import PoseArray
 from geometry_msgs.msg import PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseStamped
+
+
 from tf.transformations import quaternion_from_euler
 import matplotlib.pyplot as plt
 import math
@@ -338,10 +341,10 @@ def pose_target_callback(msg):
     global goal_updated
     global gx, gy
     if not planning_status:
-        gx, gy = pose_to_node(msg.position.x, msg.position.y)
+        gx, gy = pose_to_node(msg.pose.position.x, msg.pose.position.y)
         goal_updated = True
         print("Goal found!")
-        print("Goal Pose: {}, {}" .format(msg.position.x, msg.position.y))
+        print("Goal Pose: {}, {}" .format(msg.pose.position.x, msg.pose.position.y))
         print("Goal Node: {}, {}" .format(round(gx), round(gy)))
     else:
         print("Still planning, cannot update goal")
@@ -358,7 +361,7 @@ def amcl_pose_callback(msg):
 if __name__=="__main__":
     rospy.init_node('map_writer')
     map_sub = rospy.Subscriber('map', OccupancyGrid, map_callback)
-    pose_target_sub = rospy.Subscriber("target_pose", Pose, pose_target_callback)
+    pose_target_sub = rospy.Subscriber("move_base_simple/goal", PoseStamped, pose_target_callback)
     
     pose_pub = rospy.Publisher("path", PoseArray, queue_size = 10)
 
