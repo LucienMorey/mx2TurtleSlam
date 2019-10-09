@@ -224,6 +224,7 @@ class astar_planner:
 ####################################
 '''
 
+
 def print_map(msg):
 	f = open('map.txt', 'a+')
 	f.truncate(0)
@@ -253,6 +254,8 @@ def to_trinary(p):
 	else:
 		return str(2)
 
+
+
 def map_callback(msg):
     # create obstacle arrays from map message
     map = msg
@@ -276,14 +279,17 @@ def map_callback(msg):
     print("Found {} obstacle points" .format(count))
     pose_amcl_sub = rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, amcl_pose_callback)
 
+
+
 def list_to_pose(x_list, y_list):
+
     # create pose array from x and y lists
-    # call publisher 
     pose_array_msg = PoseArray()
+    old_xypose = Pose()
+
+    // iterate through path lists
     for i in range(len(x_list)):
         xypose = Pose()
-        #xypose.position.x = x_list[i]
-        #xypose.position.y = y_list[i]
         xypose.position.x, xypose.position.y = node_to_pose(x_list[i], y_list[i])
 
         if (i + 1 < len(x_list)):
@@ -295,11 +301,20 @@ def list_to_pose(x_list, y_list):
             theta = (numpy.pi / 2) -math.atan2(dx, dy) 
             xypose.orientation.x, xypose.orientation.y, xypose.orientation.z, xypose.orientation.w= quaternion_from_euler(0, 0, theta)
 
-        pose_array_msg.poses.append(xypose)
+        # only add this pose to the message if the angle changes
+        # removes redundant pose destinations
+        if(xypose.orientation != old_xypose.orientation):
+            pose_array_msg.poses.append(xypose)
+            old_xypose = xypose
+    
+    # message needs a frame of reference
     pose_array_msg.header.frame_id = "map"
-
     pose_pub.publish(pose_array_msg)
+
+    # confirmation
     print("Published {} path poses" .format(len(pose_array_msg.poses)))
+
+
 
 def node_to_pose(x, y):
     x_pose = map_origin.position.x + map_res * x
@@ -307,13 +322,17 @@ def node_to_pose(x, y):
 
     return x_pose, y_pose
 
+
+
 def pose_to_node(x_pose, y_pose):
     x = (x_pose - map_origin.position.x)/map_res
     y = (y_pose - map_origin.position.y)/map_res
 
     return x, y
 
+
 def pose_target_callback(msg):
+
     # target pose callback
     # recieves msg from pose publisher node
     # if we are not currently planning, then set the new goal
@@ -327,9 +346,14 @@ def pose_target_callback(msg):
     else:
         print("Still planning, cannot update goal")
 
+
+
+
 def amcl_pose_callback(msg):
     global sx, sy
     sx, sy = pose_to_node(msg.pose.pose.position.x, msg.pose.pose.position.y)
+
+
 
 if __name__=="__main__":
     rospy.init_node('map_writer')
