@@ -28,8 +28,9 @@ map_origin      = Pose()
 map_res         = 0         # m/nodes
 ox, oy          = [], []    # obstacle maps
 gx, gy          = 0, 0      # goal x,y
+g_pose          = Pose()    # goal pose from message
 sx, sy          = 0, 0      # start position for planning
-robot_radius    = 0.25       # meters
+robot_radius    = 0.30       # meters
 show_animation  = True
 planning_status = False     # currently planning?
 
@@ -297,6 +298,7 @@ def list_to_pose(x_list, y_list):
     # create pose array from x and y lists
     pose_array_msg = PoseArray()
     old_xypose = Pose()
+    global g_pose
 
     # iterate through path lists
     for i in range(len(x_list)):
@@ -317,6 +319,9 @@ def list_to_pose(x_list, y_list):
         if(xypose.orientation != old_xypose.orientation):
             pose_array_msg.poses.append(xypose)
             old_xypose = xypose
+
+    # set final pose to pose from target message
+    pose_array_msg.poses[-1].orientation = g_pose.orientation
     
     # message needs a frame of reference
     pose_array_msg.header.frame_id = "map"
@@ -348,7 +353,7 @@ def pose_target_callback(msg):
     # recieves msg from pose publisher node
     # if we are not currently planning, then set the new goal
     global planning_status
-    global gx, gy
+    global gx, gy, g_pose
 
     try:
         plt.close()
@@ -363,6 +368,7 @@ def pose_target_callback(msg):
     else:
         print("Still planning, cannot update goal")
 
+    g_pose = msg.pose
 
 
 
