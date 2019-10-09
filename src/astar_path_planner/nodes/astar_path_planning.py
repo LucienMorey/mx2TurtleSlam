@@ -26,7 +26,7 @@ map_res         = 0         # m/nodes
 ox, oy          = [], []    # obstacle maps
 gx, gy          = 0, 0      # goal x,y
 sx, sy          = 0, 0      # start position for planning
-robot_radius    = 0.2       # meters
+robot_radius    = 0.25       # meters
 show_animation  = True
 planning_status = False     # currently planning?
 
@@ -185,12 +185,25 @@ class astar_planner:
 
         self.obmap = [[False for i in range(self.ywidth)]for i in range(self.xwidth)]
         count = 0
+        #print(int(round(self.rr)))
         for x, y in zip(ox, oy):
             ix = x - self.minx
             iy = y - self.miny
             try:
                 self.obmap[ix][iy] = True
                 count += 1
+                for r in range(int(round(self.rr))):
+                    for dy in range(-r, r):
+                        for dx in range(-r, r):
+                            try:
+                                if not self.obmap[ix+dx][iy+dy]:
+                                    self.obmap[ix+dx][iy+dy] = True
+                                    count += 1
+                                    print("count: {:<12}\r" .format(count)),
+                            except IndexError:
+                                pass
+
+                '''
                 for i,_ in enumerate(self.motion):
                     for j in range(int(round(self.rr))):
                         try:
@@ -199,6 +212,7 @@ class astar_planner:
                                 count += 1
                         except IndexError:
                             pass
+                '''
             except IndexError:
                 pass
         print("Added {} nodes to the vitual obstacle map". format(count))
@@ -287,7 +301,7 @@ def list_to_pose(x_list, y_list):
     pose_array_msg = PoseArray()
     old_xypose = Pose()
 
-    // iterate through path lists
+    # iterate through path lists
     for i in range(len(x_list)):
         xypose = Pose()
         xypose.position.x, xypose.position.y = node_to_pose(x_list[i], y_list[i])
