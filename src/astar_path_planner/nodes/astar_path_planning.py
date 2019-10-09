@@ -77,7 +77,7 @@ class astar_planner:
             if show_animation:  # pragma: no cover
                 plt.plot(self.calc_grid_position(current.x, self.minx),
                          self.calc_grid_position(current.y, self.miny), "xc")
-                if len(closed_set.keys()) % 1000 == 0:
+                if len(closed_set.keys()) % 100 == 0:
                     plt.pause(0.001)
 
             if current.x == ngoal.x and current.y == ngoal.y:
@@ -204,6 +204,16 @@ class astar_planner:
         
         print("\nAdded {} nodes to the vitual obstacle map". format(count))
 
+
+    def verify_target_pose(gx, gy):
+        if (gx < self.minx) or (gx > self.maxx) or (gy < self.miny) or (gy > maxy):
+            return False
+   
+        elif self.obmap[gx - minx][gy - miny]:
+            return False
+
+        else:
+            return True
 
     @staticmethod
     def get_motion_model():
@@ -338,11 +348,10 @@ def pose_target_callback(msg):
     # recieves msg from pose publisher node
     # if we are not currently planning, then set the new goal
     global planning_status
-    global goal_updated
     global gx, gy
     if not planning_status:
-        gx, gy = pose_to_node(msg.pose.position.x, msg.pose.position.y)
-        goal_updated = True
+
+        gx, gy = pose_to_node(msg.position.x, msg.position.y)
         print("Goal found!")
         print("Goal Pose: {}, {}" .format(msg.pose.position.x, msg.pose.position.y))
         print("Goal Node: {}, {}" .format(round(gx), round(gy)))
@@ -379,14 +388,15 @@ if __name__=="__main__":
     
             astar = astar_planner(ox, oy, 1, robot_radius)
 
+            while 1:
+                while not astar.verify_target_pose()
+                    print("Waiting for valid target \r"),   
 
-            rx, ry = astar.planning(sx, sy, gx, gy)
-  
+                rx, ry = astar.planning(sx, sy, gx, gy)
+            
+                list_to_pose(rx, ry)
 
-
-            list_to_pose(rx, ry)
-
-            if show_animation:
-                plt.plot(rx, ry, "-r")
-                plt.show()
-                break;
+                if show_animation:
+                        plt.plot(rx, ry, "-r")
+                        plt.show()
+                gx, gy = 0, 0
