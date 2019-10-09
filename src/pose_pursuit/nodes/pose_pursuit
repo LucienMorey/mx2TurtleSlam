@@ -22,9 +22,9 @@ class PosePursuit:
         self.theta_goal = 0
 
         # controller gains
-        self.Kp_rho = 0.1
-        self.Kp_alpha = 0.2
-        self.Kp_beta = -0.2
+        self.Kp_rho = 0.4
+        self.Kp_alpha = 0.05
+        self.Kp_beta = -0.05
 
         # velocity to output
         self.velocity = Twist()
@@ -37,7 +37,7 @@ class PosePursuit:
 
         # subscriber
         self.odom_sub = rospy.Subscriber('amcl_pose', PoseWithCovarianceStamped, self.amcl_pose_callback)
-        self.pose_goal_sub = rospy.Subscriber('target_pose', Pose, self.pose_goal_callback)
+        self.pose_goal_sub = rospy.Subscriber('path', PoseArray, self.pose_array_goal_callback)
 
         
 
@@ -116,7 +116,7 @@ class PosePursuit:
 
         beta = (self.theta_goal - self.theta - alpha + np.pi) % (2 * np.pi) - np.pi
 
-        if ((rho > 0.05) or (abs(self.theta_goal - self.theta) > 0.0825)):       
+        if (rho > 0.05):       
         
             self.velocity.linear.x = self.Kp_rho * rho
             self.velocity.angular.z = self.Kp_alpha * alpha + self.Kp_beta * beta
@@ -134,8 +134,8 @@ class PosePursuit:
         else:
             self.velocity.linear.x = 0.0
             self.velocity.angular.z = 0.0
-            # if len(pose_array) > 0:
-            #     update_current_pose_goal()
+            if len(self.pose_array) > 0:
+                self.update_current_pose_goal()
 
         self.velocity_pub.publish(self.velocity)
 
