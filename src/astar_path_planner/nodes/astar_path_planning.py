@@ -208,10 +208,11 @@ class astar_planner:
 
     def verify_target_pose(self, gx, gy):
         if (gx < self.minx) or (gx > self.maxx) or (gy < self.miny) or (gy > self.maxy):
+            print("Target out of Range. Try again\t\t\t\r"),
             return False
    
         elif self.obmap[int(round(gx - self.minx))][int(round(gy - self.miny))]:
-            print("obstacle")
+            print("Target is an Obstacle. Try again\t\t\t\r"),
             return False
 
         else:
@@ -321,9 +322,12 @@ def list_to_pose(x_list, y_list):
             pose_array_msg.poses.append(xypose)
             old_xypose = xypose
 
-    # set final pose to pose from target message
-    pose_array_msg.poses[-1].orientation = g_pose.orientation
-    
+    try:
+        # set final pose to pose from target message
+        pose_array_msg.poses[-1].orientation = g_pose.orientation
+    except:
+        pass
+        
     # message needs a frame of reference
     pose_array_msg.header.frame_id = "map"
     pose_pub.publish(pose_array_msg)
@@ -397,7 +401,7 @@ if __name__=="__main__":
             # wait for a new goal to start planning again
             while 1:
                 while not astar.verify_target_pose(gx,gy):
-                    print("Waiting for valid target \r"),  
+                    print("\r"),  
 
                 if show_animation:
                     plt.plot(ox, oy, ".k")

@@ -118,6 +118,7 @@ class PosePursuit:
         # the absolute angle of the path between current pose and target pose
         theta_path = math.atan2(y_diff, x_diff)
         theta_path_error = theta_path - self.theta
+        theta_error = self.theta_goal - self.theta
 
         '''
         # Restrict alpha and beta (angle differences) to the range
@@ -137,8 +138,11 @@ class PosePursuit:
             theta_path_error += 2 * np.pi
 
 
+        if (abs(theta_error) and (len(self.pose_array) == 0)):
+            self.velocity.linear.x = 0.0
+            self.velocity.angular.z = theta_error * self.Kp_angular * 0.4
         # first check angular error
-        if (abs(theta_path_error) > math.radians(self.angular_tolerance)):
+        elif (abs(theta_path_error) > math.radians(self.angular_tolerance)):
             self.velocity.linear.x = 0.0
             self.velocity.angular.z = theta_path_error * self.Kp_angular
 
@@ -146,6 +150,8 @@ class PosePursuit:
         elif (rho > self.linear_tolerance):
             self.velocity.angular.z = 0.0
             self.velocity.linear.x = np.sqrt(rho) * self.Kp_rho
+
+        
         
         # otherwise set zero velocity and increment to the next pose in the list
         else:
@@ -167,7 +173,7 @@ class PosePursuit:
         # print some relevant values
         self.velocity_pub.publish(self.velocity)
         #print("X: {:<6} Y: {:<6} THETA: {:<6} RHO: {:<6} ALPHA: {:<6} BETA: {:<6}\r" .format(round(self.x, 3), round(self.y, 3), round(self.theta, 3), round(rho, 3), round(alpha, 3), round(beta, 3))),
-        print("X: {:<6} Y: {:<6} THETA: {:<6} RHO: {:<6} THETA_PATH: {:<6} THETA_PATH_E: {:<6}\r" .format(round(self.x, 3), round(self.y, 3), round(self.theta, 3), round(rho, 3), round(theta_path, 3), round(theta_path_error, 3))),
+        print("X: {:<6} Y: {:<6} THETA: {:<6} RHO: {:<6} THETA_ER: {:<6} THETA_PATH_E: {:<6}\r" .format(round(self.x, 3), round(self.y, 3), round(self.theta, 3), round(rho, 3), round(theta_error, 3), round(theta_path_error, 3))),
 
 
 if __name__ == '__main__':
