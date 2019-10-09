@@ -4,6 +4,7 @@ import rospy
 from geometry_msgs.msg import Pose, Twist, PoseWithCovarianceStamped, PoseArray
 from tf.transformations import euler_from_quaternion
 from nav_msgs.msg import Odometry
+from math import copysign
 import numpy as np
 
 class PosePursuit:
@@ -25,6 +26,10 @@ class PosePursuit:
         self.Kp_rho = 0.1
         self.Kp_alpha = 0.2
         self.Kp_beta = -0.2
+
+        # velocity bounds
+        self.linear_vel_bound = 0.22
+        self.angular_vel_bound = 1.82
 
         # velocity to output
         self.velocity = Twist()
@@ -121,13 +126,11 @@ class PosePursuit:
             self.velocity.linear.x = self.Kp_rho * rho
             self.velocity.angular.z = self.Kp_alpha * alpha + self.Kp_beta * beta
 
-            if self.velocity.linear.x > 0.22:
-                self.velocity.linear.x = 0.22
+            if (abs(self.velocity.linear.x) > self.linear_vel_bound):
+            	self.velocity.linear.x = copysign(self.linear_vel_bound, self.velocity.linear.x)
 
-            if self.velocity.angular.z > 1.82:
-                self.velocity.angular.z = 1.82
-            elif self.velocity.angular.z < -1.82:
-                self.velocity.angular.z = -1.82
+            if (abs(self.velocity.angular.z) > self.angular_vel_bound):
+            	self.velocity.angular.z = copysign(self.angular_vel_bound, self.velocity.angular.z)
 
             if alpha > np.pi / 2 or alpha < -np.pi / 2:
                 self.velocity.linear.x = -self.velocity.linear.x
