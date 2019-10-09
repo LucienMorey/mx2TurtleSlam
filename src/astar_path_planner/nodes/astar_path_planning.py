@@ -30,7 +30,7 @@ ox, oy          = [], []    # obstacle maps
 gx, gy          = 0, 0      # goal x,y
 g_pose          = Pose()    # goal pose from message
 sx, sy          = 0, 0      # start position for planning
-robot_radius    = 0.30       # meters
+robot_radius    = 0.3       # meters
 show_animation  = True
 planning_status = False     # currently planning?
 
@@ -211,6 +211,7 @@ class astar_planner:
             return False
    
         elif self.obmap[int(round(gx - self.minx))][int(round(gy - self.miny))]:
+            print("obstacle")
             return False
 
         else:
@@ -355,20 +356,21 @@ def pose_target_callback(msg):
     global planning_status
     global gx, gy, g_pose
 
-    try:
-        plt.close()
-    except:
-        pass
-
+ 
     if not planning_status:
         gx, gy = pose_to_node(msg.pose.position.x, msg.pose.position.y)
-        print("\nGoal found!")
+        print("\nGoal recieved")
         print("Goal Pose: {}, {}" .format(msg.pose.position.x, msg.pose.position.y))
         print("Goal Node: {}, {}\n" .format(round(gx), round(gy)))
     else:
         print("Still planning, cannot update goal")
 
     g_pose = msg.pose
+
+    try:
+        plt.close()
+    except:
+        pass
 
 
 
@@ -386,9 +388,8 @@ if __name__=="__main__":
     pose_pub = rospy.Publisher("path", PoseArray, queue_size = 10)
 
     while 1:
-        # if start, goal, and map have been recieved
-        if(ox and gx and sx):
-            
+        # if start, goal, and map have been recieved if(ox and gx and sx):
+        if (ox and gx and sx):    
             robot_radius /= (map_res)
     
             astar = astar_planner(ox, oy, 1, robot_radius)
