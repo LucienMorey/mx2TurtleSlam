@@ -199,7 +199,7 @@ class astar_planner:
             except IndexError:
                 pass
         
-        print("Added {} nodes to the vitual obstacle map". format(count))
+        print("\nAdded {} nodes to the vitual obstacle map". format(count))
 
 
     @staticmethod
@@ -387,4 +387,3 @@ if __name__=="__main__":
                 plt.plot(rx, ry, "-r")
                 plt.show()
                 break;
-
