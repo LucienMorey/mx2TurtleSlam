@@ -111,7 +111,10 @@ class PosePursuit:
         x_diff = self.x_goal - self.x
         y_diff = self.y_goal - self.y
 
+        # rho is the distance to the next target pose
         rho = (np.sqrt(x_diff**2 + y_diff**2))
+
+        # the absolute angle of the path between current pose and target pose
         theta_path = atan2(x_diff/y_diff)
 
         '''
@@ -124,18 +127,24 @@ class PosePursuit:
         self.velocity.angular.z = self.Kp_alpha * alpha + self.Kp_beta * beta
         '''
 
+        # first check angular error
         if (abs(theta_path - self.theta) > math.radians(self.angular_tolerance)):
             theta_path_error = theta_path - self.theta
             self.velocity.angular.z = theta_path_error * self.Kp_angular
+
+        # check distance error
         elif (rho > self.linear_tolerance):
             self.velocity.linear.x = np.sqrt(rho) * self.Kp_rho
+        
+        # otherwise set zero velocity and increment to the next pose in the list
         else:
             self.velocity.linear.x = 0.0
             self.velocity.angular.z = 0.0
             if len(self.pose_array) > 0:
                 self.update_current_pose_goal()
 
-        
+        # check that all the velocities are within the bounds
+        # if not crop them to max
         if (abs(self.velocity.linear.x) > self.linear_vel_bound):
             self.velocity.linear.x = copysign(self.linear_vel_bound, self.velocity.linear.x)
 
@@ -144,7 +153,9 @@ class PosePursuit:
 
         if alpha > np.pi / 2 or alpha < -np.pi / 2:
             self.velocity.linear.x = -self.velocity.linear.x
-            
+        
+        # publish velocity msg
+        # print some relevant values
         self.velocity_pub.publish(self.velocity)
         print("X: {:<6} Y: {:<6} THETA: {:<6} RHO: {:<6} ALPHA: {:<6} BETA: {:<6}\r" .format(round(self.x, 3), round(self.y, 3), round(self.theta, 3), round(rho, 3), round(alpha, 3), round(beta, 3))),
 
