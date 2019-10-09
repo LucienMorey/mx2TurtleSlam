@@ -205,11 +205,11 @@ class astar_planner:
         print("\nAdded {} nodes to the vitual obstacle map". format(count))
 
 
-    def verify_target_pose(gx, gy):
-        if (gx < self.minx) or (gx > self.maxx) or (gy < self.miny) or (gy > maxy):
+    def verify_target_pose(self, gx, gy):
+        if (gx < self.minx) or (gx > self.maxx) or (gy < self.miny) or (gy > self.maxy):
             return False
    
-        elif self.obmap[gx - minx][gy - miny]:
+        elif self.obmap[int(round(gx - self.minx))][int(round(gy - self.miny))]:
             return False
 
         else:
@@ -351,7 +351,7 @@ def pose_target_callback(msg):
     global gx, gy
     if not planning_status:
 
-        gx, gy = pose_to_node(msg.position.x, msg.position.y)
+        gx, gy = pose_to_node(msg.pose.position.x, msg.pose.position.y)
         print("Goal found!")
         print("Goal Pose: {}, {}" .format(msg.pose.position.x, msg.pose.position.y))
         print("Goal Node: {}, {}" .format(round(gx), round(gy)))
@@ -389,7 +389,9 @@ if __name__=="__main__":
             astar = astar_planner(ox, oy, 1, robot_radius)
 
             while 1:
-                while not astar.verify_target_pose()
+                print(gx)
+                print(gy)
+                while not astar.verify_target_pose(gx,gy):
                     print("Waiting for valid target \r"),   
 
                 rx, ry = astar.planning(sx, sy, gx, gy)
