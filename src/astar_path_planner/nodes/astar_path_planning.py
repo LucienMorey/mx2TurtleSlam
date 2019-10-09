@@ -30,7 +30,6 @@ robot_radius    = 0.25       # meters
 show_animation  = True
 planning_status = False     # currently planning?
 
-
 class astar_planner:
 
     def __init__(self, ox, oy, reso, rr):
@@ -139,12 +138,7 @@ class astar_planner:
         return d
 
     def calc_grid_position(self, index, minp):
-        """
-        calc grid position
-        :param index:
-        :param minp:
-        :return:
-        """
+
         pos = index * self.reso + minp
         return pos
 
@@ -202,19 +196,9 @@ class astar_planner:
                                     print("count: {:<12}\r" .format(count)),
                             except IndexError:
                                 pass
-
-                '''
-                for i,_ in enumerate(self.motion):
-                    for j in range(int(round(self.rr))):
-                        try:
-                            if not self.obmap[ix+self.motion[i][0]*j][iy+self.motion[i][1]*j]:
-                                self.obmap[ix+self.motion[i][0]*j][iy+self.motion[i][1]*j] = True
-                                count += 1
-                        except IndexError:
-                            pass
-                '''
             except IndexError:
                 pass
+        
         print("Added {} nodes to the vitual obstacle map". format(count))
 
 
@@ -351,9 +335,11 @@ def pose_target_callback(msg):
     # recieves msg from pose publisher node
     # if we are not currently planning, then set the new goal
     global planning_status
+    global goal_updated
     global gx, gy
     if not planning_status:
         gx, gy = pose_to_node(msg.position.x, msg.position.y)
+        goal_updated = True
         print("Goal found!")
         print("Goal Pose: {}, {}" .format(msg.position.x, msg.position.y))
         print("Goal Node: {}, {}" .format(round(gx), round(gy)))
@@ -389,7 +375,11 @@ if __name__=="__main__":
             robot_radius /= (map_res)
     
             astar = astar_planner(ox, oy, 1, robot_radius)
+
+
             rx, ry = astar.planning(sx, sy, gx, gy)
+  
+
 
             list_to_pose(rx, ry)
 
